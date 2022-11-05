@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 
 from vkwave.http import AbstractHTTPClient
 
-from .context import RequestContext
+from .context import AbstractRequestContext
 from .factory import AbstractFactory
-from .types import MethodName
+from vkwave.client.types import MethodName
 
 
 class AbstractAPIClient(ABC):
@@ -22,7 +22,7 @@ class AbstractAPIClient(ABC):
         ...
 
     @abstractmethod
-    def create_request(self, method_name: MethodName, params: dict) -> RequestContext:
+    def create_request(self, method_name: MethodName, params: dict) -> AbstractRequestContext:
         ...
 
     async def __aenter__(self):

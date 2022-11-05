@@ -11,23 +11,23 @@ from aiohttp import ClientConnectionError, ClientSession
 from typing_extensions import Final
 
 from vkwave.http import AbstractHTTPClient
-from vkwave.http import AIOHTTPClient as AHC_H
+from vkwave.http import AIOHTTPClient
 
-from .abstract import AbstractAPIClient
-from .context import RequestContext, Signal
-from .factory import AbstractFactory, DefaultFactory
-from .types import MethodName
+from vkwave.client.abstract.api_client import AbstractAPIClient
+from vkwave.client.default.context import DefaultRequestContext, Signal
+from vkwave.client.default.factory import DefaultFactory
+from vkwave.client.types import MethodName
 
 logger = getLogger(__name__)
 
 
-async def _logging_signal_before_request(ctx: RequestContext):
+async def _logging_signal_before_request(ctx: DefaultRequestContext) -> None:
     logger.debug(
         f"Doing request to '{ctx.method_name}' method with these params: {ctx.request_params}"
     )
 
 
-class AIOHTTPClient(AbstractAPIClient):
+class DefaultAIOHTTPClient(AbstractAPIClient):
     API_URL: Final = "https://api.vk.com/method/{method_name}"
 
     def __init__(
@@ -35,22 +35,22 @@ class AIOHTTPClient(AbstractAPIClient):
         session: Optional[ClientSession] = None,
         loop: Optional[AbstractEventLoop] = None,
     ):
-        self._http_client = AHC_H(session=session, loop=loop)
-        self._factory: AbstractFactory = DefaultFactory()
+        self._http_client = AIOHTTPClient(session=session, loop=loop)
+        self._factory: DefaultFactory = DefaultFactory()
 
     @property
     def http_client(self) -> AbstractHTTPClient:
         return self._http_client
 
     @property
-    def context_factory(self) -> AbstractFactory:
+    def context_factory(self) -> DefaultFactory:
         return self._factory
 
-    def set_context_factory(self, factory: AbstractFactory) -> None:
+    def set_context_factory(self, factory: DefaultFactory) -> None:
         self._factory = factory
 
-    def create_request(self, method_name: MethodName, params: dict) -> RequestContext:
-        ctx = self.context_factory.create_context(
+    def create_request(self, method_name: MethodName, params: dict) -> DefaultRequestContext:
+        ctx: DefaultRequestContext = self.context_factory.create_context(
             request_callback=self.request_callback,
             method_name=method_name,
             request_params=params,

@@ -1,10 +1,10 @@
 import typing
 
 if typing.TYPE_CHECKING:
-    from .context import RequestContext
+    from abstract.context import AbstractRequestContext
 
-ErrorHandlerCallable = typing.Callable[["RequestContext"], typing.Awaitable[None]]
+ErrorHandlerCallable = typing.Callable[["AbstractRequestContext"], typing.Awaitable[None]]
 
 MethodName = typing.NewType("MethodName", str)
 RequestCallbackCallable = typing.Callable[[MethodName, dict], typing.Awaitable[dict]]
-SignalCallbackCallable = typing.Callable[["RequestContext"], typing.Awaitable[None]]
+SignalCallbackCallable = typing.Callable[["AbstractRequestContext"], typing.Awaitable[None]]
