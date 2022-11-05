@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
-import warnings
-
-from typing import Any, Awaitable, Callable, Dict, Optional, Type
+from typing import Any, Awaitable, Callable, Dict, Optional, Tuple, Type, TypeVar
 
 from vkwave.bots.core.dispatching.events.base import BaseEvent
 from vkwave.bots.core.types.bot_type import BotType
-from vkwave.types.user_events import EventId
+from vkwave.types.bot_events import BotEventType
+from vkwave.types.user_events import EventId, get_EventId_by_id
+
+AnyEventType = TypeVar('AnyEventType')
 
 
 class BaseResultCaster(ABC):
@@ -16,21 +17,43 @@ class BaseResultCaster(ABC):
 
 class ResultCaster(BaseResultCaster):
     def __init__(self):
-        self.available: Dict[Type[Any], Callable[[Any, BaseEvent], Awaitable[None]]] = {}
+        self.handlers: Dict[Tuple[BotEventType | EventId | AnyEventType, Type[Any]],
+                            Callable[[Tuple[Type[Any], BaseEvent]], Awaitable[None]]] = {}
 
-        self.add_caster(str, _default_str_handler)
-        self.add_caster(type(None), _default_none_handler)
+        self.add_caster(str, _default_str_handler, BotEventType.MESSAGE_NEW, EventId.MESSAGE_EVENT)
+        self.add_caster(type(None), _default_none_handler, AnyEventType)
 
-    def add_caster(self, typeof: Type[Any], handler: Callable[[Any, BaseEvent], Awaitable[None]]):
-        self.available[typeof] = handler
+    def add_caster(
+        self,
+        typeof: Type[Any],
+        handler: Callable[[Tuple[Type[Any], BaseEvent]], Awaitable[None]],
+        *event_type: BotEventType | EventId | AnyEventType,
+    ):
+        for et in event_type:
+            self.handlers[(et, typeof)] = handler
+
+    def remove_caster(
+        self,
+        typeof: Type[Any],
+        *event_type: BotEventType | EventId | AnyEventType,
+    ):
+        for et in event_type:
+            self.handlers.pop((et, typeof), None)
 
     async def cast(self, result: Any, event: BaseEvent):
         typeof = type(result)
-        handler: Optional[Callable[[Any, BaseEvent], Awaitable[None]]] = self.available.get(typeof)
-        if not handler:
-            warnings.warn("implementation for this type doesn't exist")
-            return
-        await handler(result, event)
+        event_type: BotEventType | EventId = BotEventType[event.object.type.upper()] \
+            if event.bot_type is BotType.BOT else \
+            get_EventId_by_id(event.object.object.event_id)
+
+        handler: Optional[Callable[[Tuple[Type[Any], BaseEvent]], Awaitable[None]]] = \
+            self.handlers.get((event_type, typeof), None)
+
+        if handler is None:
+            handler = self.handlers.get((AnyEventType, typeof), None)
+
+        if handler is not None:
+            await handler(result, event)
 
 
 async def _default_none_handler(some, event: BaseEvent):
@@ -38,16 +61,5 @@ async def _default_none_handler(some, event: BaseEvent):
 
 
 async def _default_str_handler(some: str, event: BaseEvent):
-    if (
-        event.bot_type is BotType.USER
-        and event.object.object.event_id not in EventId.MESSAGE_EVENT.value
-    ) or (event.bot_type is BotType.BOT and event.object.type != "message_new"):
-        raise NotImplementedError(
-            "'str' handler is implemented only for 'message_new' events, now"
-        )
-    if event.bot_type is BotType.USER:
-        peer_id = event.object.object.peer_id
-    else:
-        peer_id = event.object.object.message.peer_id
-
+    peer_id = event.object.object.peer_id if event.bot_type is BotType.USER else event.object.object.message.peer_id
     await event.api_ctx.messages.send(random_id=0, peer_id=peer_id, message=some)

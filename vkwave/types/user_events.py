@@ -457,6 +457,15 @@ _events_dict = {
     EventId.USER_TYPING_OR_MAKING_VOICE_MESSAGE: _typing_or_voice,
 }
 
+# С этим надо что-то делать
+def get_EventId_by_id(id: int) -> EventId:
+    if id in EventId.MESSAGE_EVENT.value:
+        return EventId.MESSAGE_EVENT
+    elif id in EventId.USER_TYPING_OR_MAKING_VOICE_MESSAGE.value:
+        return EventId.USER_TYPING_OR_MAKING_VOICE_MESSAGE
+    else:
+        return EventId(id)
+
 
 def _parse_event(
     raw_event: RAW_EVENT_TYPE,
