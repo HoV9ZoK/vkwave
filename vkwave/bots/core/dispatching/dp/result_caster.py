@@ -42,15 +42,16 @@ class ResultCaster(BaseResultCaster):
 
     async def cast(self, result: Any, event: BaseEvent):
         typeof = type(result)
-        event_type: BotEventType | EventId = BotEventType[event.object.type.upper()] \
-            if event.bot_type is BotType.BOT else \
-            get_EventId_by_id(event.object.object.event_id)
 
         handler: Optional[Callable[[Tuple[Type[Any], BaseEvent]], Awaitable[None]]] = \
-            self.handlers.get((event_type, typeof), None)
+            self.handlers.get((AnyEventType, typeof), None)
 
+        # Логично, что AnyEventType покроет BotEventType | EventId, поэтому его первым
         if handler is None:
-            handler = self.handlers.get((AnyEventType, typeof), None)
+            event_type: BotEventType | EventId = BotEventType[event.object.type.upper()] \
+                if event.bot_type is BotType.BOT else \
+                get_EventId_by_id(event.object.object.event_id)
+            handler = self.handlers.get((event_type, typeof), None)
 
         if handler is not None:
             await handler(result, event)
