@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Awaitable, Callable, Dict, Optional, Tuple, Type, TypeVar
+from typing import Any, Awaitable, Callable, Dict, Optional, Tuple, Type, TypeVar, Union
 
 from vkwave.bots.core.dispatching.events.base import BaseEvent
 from vkwave.bots.core.types.bot_type import BotType
@@ -17,7 +17,7 @@ class BaseResultCaster(ABC):
 
 class ResultCaster(BaseResultCaster):
     def __init__(self):
-        self.handlers: Dict[Tuple[BotEventType | EventId | AnyEventType, Type[Any]],
+        self.handlers: Dict[Tuple[Union[BotEventType, EventId, AnyEventType], Type[Any]],
                             Callable[[Tuple[Type[Any], BaseEvent]], Awaitable[None]]] = {}
 
         self.add_caster(str, _default_str_handler, BotEventType.MESSAGE_NEW, EventId.MESSAGE_EVENT)
@@ -27,7 +27,7 @@ class ResultCaster(BaseResultCaster):
         self,
         typeof: Type[Any],
         handler: Callable[[Tuple[Type[Any], BaseEvent]], Awaitable[None]],
-        *event_type: BotEventType | EventId | AnyEventType,
+        *event_type: Union[BotEventType, EventId, AnyEventType],
     ):
         for et in event_type:
             self.handlers[(et, typeof)] = handler
@@ -35,7 +35,7 @@ class ResultCaster(BaseResultCaster):
     def remove_caster(
         self,
         typeof: Type[Any],
-        *event_type: BotEventType | EventId | AnyEventType,
+        *event_type: Union[BotEventType, EventId, AnyEventType],
     ):
         for et in event_type:
             self.handlers.pop((et, typeof), None)
@@ -48,7 +48,7 @@ class ResultCaster(BaseResultCaster):
 
         # Логично, что AnyEventType покроет BotEventType | EventId, поэтому его первым
         if handler is None:
-            event_type: BotEventType | EventId = BotEventType[event.object.type.upper()] \
+            event_type: Union[BotEventType, EventId] = BotEventType[event.object.type.upper()] \
                 if event.bot_type is BotType.BOT else \
                 get_EventId_by_id(event.object.object.event_id)
             handler = self.handlers.get((event_type, typeof), None)
