@@ -8263,6 +8263,10 @@ class MessagesMessageAttachment(BaseModel):
         None,
         description=''
     )
+    wall: typing.Optional["WallWallpost"] = Field(
+        None,
+        description=''
+    )
 
 
 class MessagesMessageAttachmentType(enum.Enum):

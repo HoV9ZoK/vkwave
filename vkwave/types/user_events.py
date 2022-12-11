@@ -39,7 +39,7 @@ class ServiceMessageData(pydantic.BaseModel):
 class MessageData(pydantic.BaseModel):
     title: typing.Optional[str]
     emoji: typing.Optional[str]
-    from_id: typing.Optional[str] = pydantic.Field(None, alias="from")
+    from_id: typing.Optional[str] = pydantic.Field(None)
     fwd_count: typing.Optional[int]
     has_template: typing.Optional[str]
     payload: typing.Optional[str]
