@@ -1,25 +1,12 @@
 """
 Factory of context.
 """
-from abc import ABC, abstractmethod
 from typing import Dict, Type
+#
+from .context import DefaultRequestContext
+from vkwave.client.types import MethodName, RequestCallbackCallable
 
-from .context import RequestContext
-from .types import MethodName, RequestCallbackCallable
-
-
-class AbstractFactory(ABC):
-    @abstractmethod
-    def create_context(
-        self,
-        exceptions: Dict[Type[Exception], None],
-        request_callback: RequestCallbackCallable,
-        method_name: MethodName,
-        request_params: dict,
-        *args,
-        **kwargs,
-    ) -> RequestContext:
-        ...
+from vkwave.client.abstract.factory import AbstractFactory
 
 
 class DefaultFactory(AbstractFactory):
@@ -31,8 +18,8 @@ class DefaultFactory(AbstractFactory):
         request_params: dict,
         *args,
         **kwargs,
-    ) -> RequestContext:
-        return RequestContext(
+    ) -> DefaultRequestContext:
+        return DefaultRequestContext(
             exceptions=exceptions,
             request_callback=request_callback,
             method_name=method_name,

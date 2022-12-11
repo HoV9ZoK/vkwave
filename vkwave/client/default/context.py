@@ -1,54 +1,28 @@
 import typing
-from enum import Enum, auto
+
+from vkwave.client.enums import RequestState, ResultState, Signal
 
 from typing_extensions import final
 
-from .types import (
+from vkwave.client.types import (
     ErrorHandlerCallable,
     MethodName,
     RequestCallbackCallable,
     SignalCallbackCallable,
 )
 
+from vkwave.client.abstract.context import AbstractResultContext, AbstractRequestContext
 
-async def _noop_error_handler(ctx: "RequestContext") -> None:
+
+async def _noop_error_handler(ctx: "DefaultRequestContext") -> None:
     """This handler does nothing. You should replace that."""
 
 
-class RequestState(Enum):
-    """State of request. Probably maybe useless in a lot of situtations but sometimes..."""
-
-    NOT_SENT = auto()
-    SENT = auto()
-
-
-class ResultState(Enum):
-    """
-    State of result.
-    You must check this before operating with values in (data, exception_data, exception)
-    """
-
-    NOTHING = auto()
-    SUCCESS = auto()
-    HANDLED_EXCEPTION = auto()
-    UNHANDLED_EXCEPTION = auto()
-
-
-class Signal(Enum):
-    # when any exception is occurred (but after exception handlers)
-    ON_EXCEPTION = auto()
-    # when we are preparing to send request
-    BEFORE_REQUEST = auto()
-    # when we sent request and ran exception handler (if exception occurred)
-    AFTER_REQUEST = auto()
-
-
-class RequestContext:
+class DefaultRequestContext(AbstractRequestContext):
     """
     Context of request. It is being returned from `create_request` function.
     Needed to work with request specified things.
     """
-
     def __init__(
         self,
         request_callback: RequestCallbackCallable,
@@ -69,7 +43,7 @@ class RequestContext:
         self.request_callback = request_callback
         self.request_params = request_params
         self.method_name = method_name
-        self.result = ResultContext()
+        self._result = DefaultResultContext()
 
         self._signals: typing.Dict[Signal, typing.List[SignalCallbackCallable]] = {
             Signal.ON_EXCEPTION: [],
@@ -85,6 +59,10 @@ class RequestContext:
         # set default handlers
         for exception in exceptions:
             self._exception_handlers[exception] = _noop_error_handler
+
+    @property
+    def result(self) -> "AbstractResultContext":
+        return self._result
 
     @final
     async def _handle_exception(self, exception: Exception) -> bool:
@@ -116,26 +94,34 @@ class RequestContext:
 
         try:
             result = await self.request_callback(self.method_name, self.request_params)
-            self.result.state = ResultState.SUCCESS
-            self.result.data = result
+            self._result.state = ResultState.SUCCESS
+            self._result.data = result
         except Exception as exc:
-            self.result.exception = exc
+            self._result.exception = exc
             if await self._handle_exception(exc):
-                self.result.state = ResultState.HANDLED_EXCEPTION
+                self._result._state = ResultState.HANDLED_EXCEPTION
             else:
-                self.result.state = ResultState.UNHANDLED_EXCEPTION
+                self._result._state = ResultState.UNHANDLED_EXCEPTION
             await self._push_signal(Signal.ON_EXCEPTION)
 
         self.state = RequestState.SENT
         await self._push_signal(Signal.AFTER_REQUEST)
 
 
-class ResultContext:
+class DefaultResultContext(AbstractResultContext):
     def __init__(self):
-        self.state: ResultState = ResultState.NOTHING
+        self._state: ResultState = ResultState.NOTHING
         self._exception: typing.Optional[Exception] = None
         self._exception_data: typing.Optional[dict] = None
         self._data: typing.Optional[dict] = None
+
+    @property
+    def state(self) -> "ResultState":
+        return self._state
+
+    @state.setter
+    def state(self, value: ResultState):
+        self._state = value
 
     @property
     def exception(self) -> typing.Optional[Exception]:
@@ -143,8 +129,8 @@ class ResultContext:
         return self._exception
 
     @exception.setter
-    def exception(self, exc: Exception) -> None:
-        self._exception = exc
+    def exception(self, value: Exception) -> None:
+        self._exception = value
 
     @property
     def exception_data(self) -> typing.Optional[dict]:
@@ -152,8 +138,8 @@ class ResultContext:
         return self._exception_data
 
     @exception_data.setter
-    def exception_data(self, data: dict) -> None:
-        self._exception_data = data
+    def exception_data(self, value: dict) -> None:
+        self._exception_data = value
 
     @property
     def data(self) -> typing.Optional[dict]:
@@ -161,5 +147,5 @@ class ResultContext:
         return self._data
 
     @data.setter
-    def data(self, data: dict) -> None:
-        self._data = data
+    def data(self, value: dict) -> None:
+        self._data = value
