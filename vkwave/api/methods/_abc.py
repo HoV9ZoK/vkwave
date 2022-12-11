@@ -10,10 +10,9 @@ from vkwave.api.methods._error import (
 )
 from vkwave.api.token.strategy import ABCGetTokenStrategy, RandomGetTokenStrategy
 from vkwave.api.token.token import AnyABCToken, Token
-from vkwave.client.abstract import AbstractAPIClient
-from vkwave.client.context import ResultState
+from vkwave.client import AbstractAPIClient, DefaultAIOHTTPClient
+from vkwave.client.enums import ResultState
 from vkwave.client.types import MethodName
-from vkwave.client import AIOHTTPClient
 from vkwave import __api_version__
 
 
@@ -210,7 +209,7 @@ class API:
     ):
         self.default_api_options = APIOptions(
             tokens,
-            clients or AIOHTTPClient(),
+            clients or DefaultAIOHTTPClient(),
             get_token_strategy or RandomGetTokenStrategy(),
             api_version or __api_version__,
             error_dispatcher or ErrorDispatcher(),
