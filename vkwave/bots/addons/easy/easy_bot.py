@@ -7,7 +7,7 @@ from vkwave.bots.addons.easy.base_easy_bot import BaseSimpleLongPollBot
 from vkwave.bots.addons.easy.easy_handlers import SimpleBotEvent
 from vkwave.bots.core.dispatching.router.router import BaseRouter
 from vkwave.bots.core.types.bot_type import BotType
-from vkwave.client import AIOHTTPClient
+from vkwave.client import DefaultAIOHTTPClient
 
 
 class SimpleLongPollBot(BaseSimpleLongPollBot):
@@ -17,7 +17,7 @@ class SimpleLongPollBot(BaseSimpleLongPollBot):
         group_id: int,
         router: typing.Optional[BaseRouter] = None,
         uvloop: bool = False,
-        client: typing.Optional[AIOHTTPClient] = None,
+        client: typing.Optional[DefaultAIOHTTPClient] = None,
         event: typing.Optional[typing.Type[SimpleBotEvent]] = None,
     ):
         super().__init__(
