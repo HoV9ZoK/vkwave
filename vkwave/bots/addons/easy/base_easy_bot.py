@@ -60,11 +60,11 @@ from vkwave.bots.fsm.filters import StateFilter
 from vkwave.types.bot_events import BotEventType
 from vkwave.types.user_events import EventId
 from vkwave.bots.core import BaseFilter
-from vkwave.client import DefaultAIOHTTPClient
+from vkwave.client import AbstractAPIClient, DefaultAIOHTTPClient
 
 
 class _APIContextManager:
-    def __init__(self, tokens: typing.Union[str, typing.List[str]], bot_type: BotType, client: DefaultAIOHTTPClient):
+    def __init__(self, tokens: typing.Union[str, typing.List[str]], bot_type: BotType, client: AbstractAPIClient):
         self.client = client
         if bot_type.USER:
             self.tokens = (
@@ -92,10 +92,10 @@ class _APIContextManager:
 
 def create_api_session_aiohttp(
     token: str,
+    client: AbstractAPIClient,
     bot_type: BotType = BotType.BOT,
-    client: typing.Optional[DefaultAIOHTTPClient] = None
 ) -> _APIContextManager:
-    return _APIContextManager(token, bot_type, client or DefaultAIOHTTPClient())
+    return _APIContextManager(token, bot_type, client)
 
 
 class BaseSimpleLongPollBot:
@@ -105,7 +105,7 @@ class BaseSimpleLongPollBot:
         bot_type: BotType,
         router: typing.Optional[BaseRouter] = None,
         group_id: typing.Optional[int] = None,
-        client: typing.Optional[DefaultAIOHTTPClient] = None,
+        client: typing.Optional[AbstractAPIClient] = None,
         uvloop: bool = False,
         event: typing.Optional[typing.Union[typing.Type[SimpleBotEvent], typing.Type[SimpleUserEvent]]] = None,
     ):
@@ -118,7 +118,7 @@ class BaseSimpleLongPollBot:
         self.group_id = group_id
         self.bot_type = bot_type
         self.client = client or DefaultAIOHTTPClient()
-        self.api_session = create_api_session_aiohttp(tokens, bot_type, self.client)
+        self.api_session = create_api_session_aiohttp(tokens, self.client, bot_type)
         self.api_context: APIOptionsRequestContext = self.api_session.api.get_context()
         if self.bot_type is BotType.USER:
             self.SimpleBotEvent = SimpleUserEvent
